@@ -1,0 +1,17 @@
+# ---- 运行时数据（含本地路径与下载历史，绝不提交） ----
+settings.json
+tasks.json
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+
+# ---- PyInstaller 构建产物 ----
+build/
+dist/
+download/
+*.spec
+
+# ---- 测试临时目录 ----
+tools/_tmp_test/
