@@ -722,7 +722,7 @@ _current = "en"
 
 
 def detect_language():
-    """根据系统 locale 猜测语言代码。"""
+    """根据系统 locale 猜测语言代码；识别不到时默认简体中文。"""
     loc = ""
     try:
         import locale as _l
@@ -734,11 +734,12 @@ def detect_language():
     for code, _name in LANGUAGES:
         if loc in (code.lower(), code.lower().replace("_", "")):
             return code
-    for prefix, code in (("zh", "zh_CN"), ("ja", "ja"), ("ko", "ko"), ("es", "es"),
+    for prefix, code in (("zh", "zh_CN"), ("en", "en"), ("ja", "ja"),
+                         ("ko", "ko"), ("es", "es"),
                          ("fr", "fr"), ("de", "de"), ("ru", "ru")):
         if loc.startswith(prefix):
             return code
-    return "en"
+    return "zh_CN"
 
 
 def set_language(code):

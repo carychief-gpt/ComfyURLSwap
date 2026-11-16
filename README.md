@@ -1,118 +1,102 @@
 # ComfyURLSwap
 
-**v1.2.0** · Windows · Pure Python (Tkinter), **zero third-party dependencies** · **8 UI languages**
+**v1.2.0** · Windows · 纯 Python（Tkinter）实现，**零第三方依赖** · **界面支持 8 种语言**
 
-**English** | [简体中文](docs/README_zh.md)
+**简体中文** | [English](docs/README_en.md)
 
-![Preview](screenshot.png)
+![预览](screenshot.png)
 
-**ComfyURLSwap** is a small GUI downloader for ComfyUI model files. Paste a batch of
-download links, and it will:
+**ComfyURLSwap** 是一个 ComfyUI 模型批量下载器小工具，粘贴一堆下载链接即可：
 
-1. **Auto-detect your ComfyUI project** on startup (ComfyUI Desktop installs under
-   `%LOCALAPPDATA%\Comfy-Desktop\ComfyUI-Installs`, portable packages on common drives,
-   or pick a folder manually — your choice is remembered).
-2. **Swap HuggingFace links to the China mirror** — `huggingface.co` → `hf-mirror.com`
-   automatically (can be turned off). Pasted `/blob/` web-page URLs are converted to
-   `/resolve/` direct-download URLs automatically.
-3. **Download with multi-threading and resume support** — byte-level resume
-   (`.part` + `Range`), survives pause / network loss / closing the app; task list is
-   persisted and restored on next launch; failed tasks retry with backoff.
-4. **File every model into the right folder** under `<project>\ComfyUI\models\`,
-   detected from the URL / file name (double-click a task to override):
+1. **自动检测 ComfyUI 项目**：启动即扫描 ComfyUI Desktop（`%LOCALAPPDATA%\Comfy-Desktop\ComfyUI-Installs`）
+   与各盘符常见便携包目录，也可手动“浏览…”选择并记住。
+2. **自动替换国内镜像**：`huggingface.co` → `hf-mirror.com`（可关闭）；粘贴 HF 的
+   `/blob/` 网页地址会自动转换为 `/resolve/` 文件直链；服务器返回 HTML 网页时立即报错，不写坏文件。
+3. **多线程 + 断点续传**：字节级续传（`.part` + `Range`），暂停 / 断网 / 关闭程序后再打开自动恢复；
+   任务列表持久化，失败自动退避重试。
+4. **自动归类落盘**：按 URL / 文件名识别模型类型，放入 `<项目>\ComfyUI\models\` 下对应子目录
+   （双击任务行可手动修改分类）：
 
-   | Model type | Destination folder |
+   | 模型类型 | 存放目录 |
    | --- | --- |
-   | Checkpoint (SD1.5 / SDXL / Flux …) | `models/checkpoints/` |
-   | Diffusion / UNet base (quantized `fp8/int8/nvfp4` …) | `models/diffusion_models/` |
+   | 大模型 / Checkpoint（SD1.5、SDXL、Flux 等） | `models/checkpoints/` |
+   | Diffusion / UNet 底模（fp8/int8/nvfp4 等量化底模） | `models/diffusion_models/` |
    | LoRA | `models/loras/` |
    | VAE | `models/vae/` |
    | ControlNet | `models/controlnet/` |
    | Embedding / Textual Inversion | `models/embeddings/` |
-   | CLIP / text encoder | `models/clip/` |
+   | CLIP / 文本编码器 | `models/clip/` |
    | CLIP Vision | `models/clip_vision/` |
-   | UNet / diffusion model | `models/unet/` |
-   | Upscaler (ESRGAN …) | `models/upscale_models/` |
+   | UNet（单独扩散模型） | `models/unet/` |
+   | 放大模型（ESRGAN 等） | `models/upscale_models/` |
    | IP-Adapter | `models/ipadapter/` |
-5. **Talk to you in your language** — the whole UI *and* log messages are localized in
-   English · 简体中文 · 日本語 · 한국어 · Español · Français · Deutsch · Русский,
-   auto-detected from your system locale on first run and switchable live via the
-   dropdown at the top-right (your choice is remembered).
+5. **多国语言界面**：界面与日志全程本地化 —— English · 简体中文 · 日本語 · 한국어 ·
+   Español · Français · Deutsch · Русский，首次启动按系统语言自动选择，右上角下拉框
+   可随时切换并自动记住。
 
-## Download
+## 下载
 
-* **Windows EXE (recommended, no Python needed):**
-  [GitHub Releases](https://github.com/carychief-gpt/ComfyURLSwap/releases/latest) →
-  download `ComfyURLSwap-v1.2.0.exe` and double-click it. `settings.json` / `tasks.json`
-  (preferences, resume data) are created next to the EXE on first run.
-* **Run from source:** Python 3.8+ (with tkinter), then `python main.py`.
+* **Windows EXE（推荐，免 Python 环境）**：前往 [GitHub Releases](https://github.com/carychief-gpt/ComfyURLSwap/releases/latest)
+  下载 `ComfyURLSwap-v1.2.0.exe`，双击即用；首次运行会在 EXE 同目录生成
+  `settings.json` / `tasks.json`（配置与断点数据）。
+* **源码运行**：Python 3.8+（自带 tkinter），执行 `python main.py` 或双击 `启动ComfyURLSwap.bat`。
 
-## Usage
+## 使用说明
 
-1. Select your ComfyUI project in **step 1** (auto-detected or browse).
-2. Paste model download links into **step 2**, one per line, then click
-   **“＋ Add & start”** — links are mirrored and queued automatically.
-3. Watch progress in the task table; finished files land in `models\<category>\`.
-   Use **Open model folder** to verify. Double-click a row to change its category
-   (before download, or while paused).
+1. 第 1 步选择（或浏览选择）你的 ComfyUI 项目目录。
+2. 第 2 步一行一条粘贴模型下载链接，点击 **“＋ 添加并开始下载”**，自动替换镜像并开始下载。
+3. 任务表格实时显示进度 / 速度 / 总进度；完成后自动放入 `models\<分类>\`，
+   可点“📁 打开模型目录”查看。双击任务行可修改分类（下载前或暂停时）。
 
-Buttons: Start/Resume · Pause All · Retry Failed · Cancel Selected · Change Category ·
-Remove Completed · Open Model Folder.
+按钮：开始/继续 · 暂停全部 · 重试失败 · 取消选中 · 修改分类 · 移除已完成 · 打开模型目录。
+右上角下拉框可随时切换界面语言（8 种），选择会自动保存。
 
-## Security / privacy
+## 安全与隐私
 
-* The app stores **no accounts, no tokens, no credentials** — it only issues plain
-  HTTP GET requests to the download links you paste.
-* Runtime files `settings.json` (local paths, preferences) and `tasks.json`
-  (your download history) are deliberately **excluded from this repository** via
-  `.gitignore`, so nothing personal is ever uploaded. Delete them anytime.
+* 程序**不存储任何账号、密码、令牌**，只对你粘贴的链接发起普通 HTTP 下载请求。
+* 记录本地路径与下载历史的 `settings.json` / `tasks.json` 已通过 `.gitignore` 排除，
+  **不会上传到本仓库**，随时可删除。
 
-## Build from source
+## 从源码打包 EXE
 
-```bash
-pip install pyinstaller
-pyinstaller --onefile --windowed --name ComfyURLSwap ^
-  --icon tools\app.ico --add-data "tools\app.ico;." main.py
-# → dist\ComfyURLSwap.exe
+```bat
+tools\build_exe.bat
 ```
 
-`tools\build_exe.bat` does the same on Windows; `tools\make_icon.py` regenerates the icon.
+或手动执行 `pyinstaller --onefile --windowed --name ComfyURLSwap --icon tools\app.ico --add-data "tools\app.ico;." main.py`。
 
-## Changelog
+## 更新日志
 
 ### v1.2.0
-* **i18n:** entire UI + log/status messages localized — English, 简体中文, 日本語,
-  한국어, Español, Français, Deutsch, Русский; auto-detected from system locale,
-  live switch from the top-right language dropdown (persisted in settings)
-* Category names (checkpoint / LoRA / CLIP …) fully translated in the task table and
-  the category dialog
-* Documentation reorganized into `docs/` (this file stays at the repo root because
-  GitHub renders only the root README on the project home page)
+* **多语言**：整个界面 + 日志/状态信息全部本地化 —— 英语、简体中文、日语、韩语、
+  西班牙语、法语、德语、俄语；按系统语言自动选择，右上角下拉框实时切换（自动记住）
+* 任务表格与分类弹窗中的模型分类名称同步翻译
+* 文档整理：本 README（根目录，默认中文）+ 英文文档 `docs/README_en.md`
 
 ### v1.1.1
-* Fix: quantized base models (`int8/int4/fp8/nvfp4/convrot/gguf/awq`, Hyper-SD) now go to `diffusion_models`
-* Fix: speed LoRAs (`turbo`, `Nstep`, `lightning`, `lightx2v`) now go to `loras` even without “lora” in the filename
-* New `diffusion_models` category (modern ComfyUI standard folder; legacy `unet` still selectable)
+* 修复：量化底模（`int8/int4/fp8/nvfp4/convrot/gguf/awq`）与 Hyper-SD 类自动归类到 `diffusion_models`
+* 修复：速度类 LoRA（`turbo`、`Nstep`、`lightning`、`lightx2v`）即使文件名不含 “lora” 也能识别归入 `loras`
+* 新增 `diffusion_models` 分类（现代 ComfyUI 标准目录，旧版 `unet` 仍可选）
 
 ### v1.0.0
-* First release: project auto-detect, hf-mirror swap, multithreaded download, resume, task persistence, auto model routing
+* 首个版本：项目自动检测、hf-mirror 域名替换、多线程下载、断点续传、任务持久化、模型自动归类
 
-## Repo layout
+## 仓库结构
 
 ```
-main.py                  # entry point
+main.py                  # 入口
 urlswap/
-  ui.py                  # Tkinter GUI (dark theme, i18n)
-  i18n.py                # translations — 8 languages
-  downloader.py          # multithread / resume / task persistence
-  project.py             # ComfyUI project auto-detection
-  classify.py            # model routing rules
-  settings.py            # settings IO (EXE-aware)
+  ui.py                  # Tkinter 界面（深色主题、多语言）
+  i18n.py                # 翻译文案（8 种语言）
+  downloader.py          # 多线程下载 / 断点续传 / 任务持久化
+  project.py             # ComfyUI 项目自动检测
+  classify.py            # 模型分类规则
+  settings.py            # 配置读写（自动适配 EXE 模式）
 docs/
-  README_zh.md           # 简体中文文档
+  README_en.md           # 英文文档（English）
 tools/
-  build_exe.bat          # one-click EXE rebuild
-  make_icon.py           # regenerate app icon
-  shot.py                # regenerate screenshot.png
-  smoke_test.py          # headless automated tests
+  build_exe.bat          # 一键重新打包 EXE
+  make_icon.py           # 生成程序图标
+  shot.py                # 重新生成截图
+  smoke_test.py          # 无界面自动化测试
 ```
