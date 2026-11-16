@@ -1,6 +1,6 @@
 # ComfyURLSwap
 
-**v1.2.0** · Windows · 纯 Python（Tkinter）实现，**零第三方依赖** · **界面支持 8 种语言**
+**v1.2.0** · Windows · 纯 Python（Tkinter）实现，**零第三方依赖** · **界面支持多语言**
 
 **简体中文** | [English](docs/README_en.md)
 
