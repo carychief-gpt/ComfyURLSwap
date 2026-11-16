@@ -1,10 +1,10 @@
 # ComfyURLSwap
 
-**v1.1.1** · Windows · 纯 Python（Tkinter）实现，**零第三方依赖**
+**v1.2.0** · Windows · 纯 Python（Tkinter）实现，**零第三方依赖** · **界面支持 8 种语言**
 
-[English](README.md) | **简体中文**
+[English](../README.md) | **简体中文**
 
-![预览](screenshot.png)
+![预览](../screenshot.png)
 
 **ComfyURLSwap** 是一个 ComfyUI 模型批量下载器小工具，粘贴一堆下载链接即可：
 
@@ -30,11 +30,14 @@
    | UNet（单独扩散模型） | `models/unet/` |
    | 放大模型（ESRGAN 等） | `models/upscale_models/` |
    | IP-Adapter | `models/ipadapter/` |
+5. **多国语言界面**：界面与日志全程本地化 —— English · 简体中文 · 日本語 · 한국어 ·
+   Español · Français · Deutsch · Русский，首次启动按系统语言自动选择，右上角下拉框
+   可随时切换并自动记住。
 
 ## 下载
 
 * **Windows EXE（推荐，免 Python 环境）**：前往 [GitHub Releases](https://github.com/carychief-gpt/ComfyURLSwap/releases/latest)
-  下载 `ComfyURLSwap-v1.1.1.exe`，双击即用；首次运行会在 EXE 同目录生成
+  下载 `ComfyURLSwap-v1.2.0.exe`，双击即用；首次运行会在 EXE 同目录生成
   `settings.json` / `tasks.json`（配置与断点数据）。
 * **源码运行**：Python 3.8+（自带 tkinter），执行 `python main.py` 或双击 `启动ComfyURLSwap.bat`。
 
@@ -46,6 +49,7 @@
    可点“📁 打开模型目录”查看。双击任务行可修改分类（下载前或暂停时）。
 
 按钮：开始/继续 · 暂停全部 · 重试失败 · 取消选中 · 修改分类 · 移除已完成 · 打开模型目录。
+右上角下拉框可随时切换界面语言（8 种），选择会自动保存。
 
 ## 安全与隐私
 
@@ -63,6 +67,12 @@ tools\build_exe.bat
 
 ## 更新日志
 
+### v1.2.0
+* **多语言**：整个界面 + 日志/状态信息全部本地化 —— 英语、简体中文、日语、韩语、
+  西班牙语、法语、德语、俄语；按系统语言自动选择，右上角下拉框实时切换（自动记住）
+* 任务表格与分类弹窗中的模型分类名称同步翻译
+* 文档整理进 `docs/` 目录（根目录保留 README.md，因为 GitHub 首页只渲染根目录 README）
+
 ### v1.1.1
 * 修复：量化底模（`int8/int4/fp8/nvfp4/convrot/gguf/awq`）与 Hyper-SD 类自动归类到 `diffusion_models`
 * 修复：速度类 LoRA（`turbo`、`Nstep`、`lightning`、`lightx2v`）即使文件名不含 “lora” 也能识别归入 `loras`
@@ -76,13 +86,17 @@ tools\build_exe.bat
 ```
 main.py                  # 入口
 urlswap/
-  ui.py                  # Tkinter 界面（深色主题）
+  ui.py                  # Tkinter 界面（深色主题、多语言）
+  i18n.py                # 翻译文案（8 种语言）
   downloader.py          # 多线程下载 / 断点续传 / 任务持久化
   project.py             # ComfyUI 项目自动检测
   classify.py            # 模型分类规则
   settings.py            # 配置读写（自动适配 EXE 模式）
+docs/
+  README_zh.md           # 简体中文文档
 tools/
   build_exe.bat          # 一键重新打包 EXE
   make_icon.py           # 生成程序图标
+  shot.py                # 重新生成截图
   smoke_test.py          # 无界面自动化测试
 ```

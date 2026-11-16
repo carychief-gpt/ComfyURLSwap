@@ -21,6 +21,7 @@ from urllib.parse import unquote, urlsplit
 from urllib.request import Request, urlopen
 
 from . import classify
+from . import i18n
 from .settings import TASKS_FILE
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -178,13 +179,13 @@ class DownloadManager:
                     self._by_id[t.id] = t
             n = len(self._tasks)
         if n:
-            self._log("已恢复 %d 条历史任务（未完成任务点已保留，点击“开始/继续”自动续传）" % n)
+            self._log(i18n.tr("log.restored", n))
 
     # ---------------------------------------------------------------- 添加任务
     def add_tasks(self, lines, auto_mirror=True):
         models_dir = self.get_models_dir()
         if not models_dir:
-            raise ValueError("请先在第 1 步选择 ComfyUI 项目")
+            raise ValueError(i18n.tr("msg.no_project"))
         added = []
         with self._lock:
             known = {t.url for t in self._tasks
@@ -194,27 +195,29 @@ class DownloadManager:
                 if not u or u.startswith("#"):
                     continue
                 if not re.match(r"^https?://", u, re.I):
-                    self._log("忽略无效地址: %s" % u)
+                    self._log(i18n.tr("log.invalid", u))
                     continue
                 final = to_mirror(u) if auto_mirror else u
                 if final != u:
-                    self._log("已替换域名 huggingface.co → hf-mirror.com\n    %s" % final)
+                    self._log(i18n.tr("log.mirror", final))
                 norm = normalize_url(final)
                 if norm != final:
-                    self._log("已将网页地址(/blob)自动转换为直链(/resolve):\n    %s" % norm)
+                    self._log(i18n.tr("log.blob", norm))
                     final = norm
                 if final in known:
-                    self._log("已在队列中，跳过: %s" % u)
+                    self._log(i18n.tr("log.dup", u))
                     continue
                 fname = filename_from_url(final)
-                cat, reason = classify.classify_url(final)
+                cat, pat = classify.classify_url(final)
+                reason = (i18n.tr("log.classify_hit", pat) if pat
+                          else i18n.tr("log.classify_default"))
                 t = Task(source=u, url=final, filename=fname, category=cat,
                          dest=str(Path(models_dir) / cat / fname))
                 self._tasks.append(t)
                 self._by_id[t.id] = t
                 known.add(final)
                 added.append(t)
-                self._log("新任务 [%s] %s —— %s" % (cat, fname, reason))
+                self._log(i18n.tr("log.new_task", cat, fname, reason))
             if added:
                 self._persist()
         return added
@@ -234,7 +237,7 @@ class DownloadManager:
             for t in self._tasks:
                 if t.status in ("pending", "paused"):
                     self._enqueue(t)
-        self._log("下载器已启动，线程数: %d" % n)
+        self._log(i18n.tr("log.threads", n))
 
     def stop(self):
         with self._lock:
@@ -348,7 +351,7 @@ class DownloadManager:
             if not t or t.status in TERMINAL:
                 continue
             t.status = "downloading"
-            self._log("开始下载: %s → models/%s/" % (t.filename, t.category))
+            self._log(i18n.tr("log.start", t.filename, t.category))
             self._run_task(t)
 
     def _run_task(self, t):
@@ -356,23 +359,24 @@ class DownloadManager:
             try:
                 self._attempt(t)
                 if t.status == "skipped":
-                    self._log("已存在，跳过: %s" % t.filename)
+                    self._log(i18n.tr("log.exists", t.filename))
                 else:
                     t.status = "done"
                     t.error = ""
-                    self._log("✔ 完成: %s 已放入 models/%s/" % (t.filename, t.category))
+                    self._log(i18n.tr("log.done", t.filename, t.category))
                 break
             except PausedSignal:
                 t.status = "canceled" if t.cancel_event.is_set() else "paused"
                 t.speed = 0
-                self._log("已%s（断点保留）: %s"
-                          % ("取消" if t.status == "canceled" else "暂停", t.filename))
+                self._log(i18n.tr("log.canceled", t.filename)
+                          if t.status == "canceled"
+                          else i18n.tr("log.paused", t.filename))
                 break
             except BadUrlError as e:
                 t.speed = 0
                 t.status = "failed"
                 t.error = str(e)
-                self._log("✘ 失败: %s — %s" % (t.filename, e))
+                self._log(i18n.tr("log.failed", t.filename, e))
                 break
             except Exception as e:
                 t.speed = 0
@@ -385,9 +389,9 @@ class DownloadManager:
                     break
                 t.retries += 1
                 if t.retries <= self.max_retries:
-                    self._log("出错，%d 秒后第 %d/%d 次重试: %s — %s"
-                              % (min(2 ** t.retries, 15), t.retries,
-                                 self.max_retries, t.filename, msg))
+                    self._log(i18n.tr("log.retry", min(2 ** t.retries, 15),
+                                      t.retries, self.max_retries,
+                                      t.filename, msg))
                     self._stop.wait(min(2 ** t.retries, 15))
                     if self._stop.is_set():
                         t.status = "paused"
@@ -395,7 +399,7 @@ class DownloadManager:
                     continue
                 t.status = "failed"
                 t.error = msg
-                self._log("✘ 失败: %s — %s" % (t.filename, msg))
+                self._log(i18n.tr("log.failed", t.filename, msg))
                 break
         with self._lock:
             self._persist()
@@ -423,7 +427,7 @@ class DownloadManager:
     def _attempt(self, t):
         fixed = normalize_url(t.url)
         if fixed != t.url:
-            self._log("地址为网页(/blob)，自动转为直链(/resolve): %s" % t.filename)
+            self._log(i18n.tr("log.blobfix", t.filename))
             t.url = fixed
         dest = Path(t.dest)
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -442,7 +446,7 @@ class DownloadManager:
 
         pos = part.stat().st_size if part.exists() else 0
         if pos:
-            self._log("断点续传: %s 从 %s 处继续" % (t.filename, _human(pos)))
+            self._log(i18n.tr("log.resume", t.filename, _human(pos)))
         etag = ""
         total = t.total or 0
         bad_url = False
@@ -462,7 +466,7 @@ class DownloadManager:
                     old_etag = meta.get("etag") or ""
                     if old_etag and etag and old_etag != etag:
                         # 服务器上的文件更新了，断点作废，从头重下
-                        self._log("服务器文件已更新，重新下载: %s" % t.filename)
+                        self._log(i18n.tr("log.changed", t.filename))
                         pos = 0
                         resp.close()
                         resp = self._open(t.url, 0)
@@ -470,7 +474,7 @@ class DownloadManager:
                         etag = resp.headers.get("ETag") or ""
                 if code == 200:
                     if pos > 0:
-                        self._log("服务器不支持续传，从头下载: %s" % t.filename)
+                        self._log(i18n.tr("log.norange", t.filename))
                     pos = 0
                     try:
                         total = int(resp.headers.get("Content-Length") or 0)
@@ -498,9 +502,7 @@ class DownloadManager:
                                            and "octet-stream" not in ct))
                             if is_html:
                                 bad_url = True
-                                raise BadUrlError(
-                                    "服务器返回的是网页(HTML)而不是文件，"
-                                    "请使用文件直链（HF 点文件页的下载按钮或带 /resolve/ 的地址）")
+                                raise BadUrlError(i18n.tr("err.html"))
                         f.write(chunk)
                         pos += len(chunk)
                         t.downloaded = pos
@@ -516,12 +518,12 @@ class DownloadManager:
                 except Exception:
                     pass
             if total and pos != total:
-                raise OSError("下载不完整: %d/%d" % (pos, total))
+                raise OSError(i18n.tr("err.incomplete", pos, total))
             if dest.exists():
                 try:
                     dest.unlink()
                 except PermissionError:
-                    raise OSError("目标文件正被占用，请先关闭 ComfyUI 后重试")
+                    raise OSError(i18n.tr("err.inuse"))
             os.replace(part, dest)
             t.downloaded = t.total = pos
             t.speed = 0.0

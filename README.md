@@ -1,8 +1,8 @@
 # ComfyURLSwap
 
-**v1.1.1** · Windows · Pure Python (Tkinter), **zero third-party dependencies**
+**v1.2.0** · Windows · Pure Python (Tkinter), **zero third-party dependencies** · **8 UI languages**
 
-**English** | [简体中文](README_zh.md)
+**English** | [简体中文](docs/README_zh.md)
 
 ![Preview](screenshot.png)
 
@@ -34,12 +34,16 @@ download links, and it will:
    | UNet / diffusion model | `models/unet/` |
    | Upscaler (ESRGAN …) | `models/upscale_models/` |
    | IP-Adapter | `models/ipadapter/` |
+5. **Talk to you in your language** — the whole UI *and* log messages are localized in
+   English · 简体中文 · 日本語 · 한국어 · Español · Français · Deutsch · Русский,
+   auto-detected from your system locale on first run and switchable live via the
+   dropdown at the top-right (your choice is remembered).
 
 ## Download
 
 * **Windows EXE (recommended, no Python needed):**
   [GitHub Releases](https://github.com/carychief-gpt/ComfyURLSwap/releases/latest) →
-  download `ComfyURLSwap-v1.1.1.exe` and double-click it. `settings.json` / `tasks.json`
+  download `ComfyURLSwap-v1.2.0.exe` and double-click it. `settings.json` / `tasks.json`
   (preferences, resume data) are created next to the EXE on first run.
 * **Run from source:** Python 3.8+ (with tkinter), then `python main.py`.
 
@@ -76,6 +80,15 @@ pyinstaller --onefile --windowed --name ComfyURLSwap ^
 
 ## Changelog
 
+### v1.2.0
+* **i18n:** entire UI + log/status messages localized — English, 简体中文, 日本語,
+  한국어, Español, Français, Deutsch, Русский; auto-detected from system locale,
+  live switch from the top-right language dropdown (persisted in settings)
+* Category names (checkpoint / LoRA / CLIP …) fully translated in the task table and
+  the category dialog
+* Documentation reorganized into `docs/` (this file stays at the repo root because
+  GitHub renders only the root README on the project home page)
+
 ### v1.1.1
 * Fix: quantized base models (`int8/int4/fp8/nvfp4/convrot/gguf/awq`, Hyper-SD) now go to `diffusion_models`
 * Fix: speed LoRAs (`turbo`, `Nstep`, `lightning`, `lightx2v`) now go to `loras` even without “lora” in the filename
@@ -89,13 +102,17 @@ pyinstaller --onefile --windowed --name ComfyURLSwap ^
 ```
 main.py                  # entry point
 urlswap/
-  ui.py                  # Tkinter GUI (dark theme)
+  ui.py                  # Tkinter GUI (dark theme, i18n)
+  i18n.py                # translations — 8 languages
   downloader.py          # multithread / resume / task persistence
   project.py             # ComfyUI project auto-detection
   classify.py            # model routing rules
   settings.py            # settings IO (EXE-aware)
+docs/
+  README_zh.md           # 简体中文文档
 tools/
   build_exe.bat          # one-click EXE rebuild
   make_icon.py           # regenerate app icon
+  shot.py                # regenerate screenshot.png
   smoke_test.py          # headless automated tests
 ```

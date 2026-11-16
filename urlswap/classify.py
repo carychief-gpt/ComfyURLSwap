@@ -7,20 +7,11 @@
 import re
 from urllib.parse import unquote
 
-# (目录名, 中文说明) —— UI 下拉框顺序即此顺序
+# 分类目录 key（语言无关）—— 显示名由 i18n 提供: tr("cat." + key)；下拉顺序即此顺序
 CATEGORIES = [
-    ("checkpoints", "大模型 / Checkpoint"),
-    ("diffusion_models", "Diffusion / UNet 底模"),
-    ("loras", "LoRA"),
-    ("vae", "VAE"),
-    ("controlnet", "ControlNet"),
-    ("clip", "CLIP / 文本编码器"),
-    ("clip_vision", "CLIP Vision"),
-    ("unet", "UNet（旧版目录）"),
-    ("upscale_models", "放大模型"),
-    ("ipadapter", "IP-Adapter"),
-    ("embeddings", "Embedding / Textual Inversion"),
-    ("other", "其他（自行建子目录）"),
+    "checkpoints", "diffusion_models", "loras", "vae", "controlnet",
+    "clip", "clip_vision", "unet", "upscale_models", "ipadapter",
+    "embeddings", "other",
 ]
 
 # (目录名, [匹配模式, ...])，按顺序尝试
@@ -80,7 +71,7 @@ _RULES = [
 
 
 def classify_url(url):
-    """返回 (category, reason)。"""
+    """返回 (category, 命中的模式串)；未命中时模式串为 ""。"""
     text = url.lower()
     try:
         text = unquote(text)
@@ -89,5 +80,5 @@ def classify_url(url):
     for cat, patterns in _RULES:
         for pat in patterns:
             if re.search(pat, text):
-                return cat, "命中关键词: " + pat.replace("\\b", "")
-    return "checkpoints", "未识别特征, 默认放 checkpoints（可双击任务修改）"
+                return cat, pat.replace("\\b", "")
+    return "checkpoints", ""
