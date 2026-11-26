@@ -209,8 +209,12 @@ class DownloadManager:
                     continue
                 fname = filename_from_url(final)
                 cat, pat = classify.classify_url(final)
-                reason = (i18n.tr("log.classify_hit", pat) if pat
-                          else i18n.tr("log.classify_default"))
+                if pat is None:
+                    reason = i18n.tr("log.classify_table", fname)
+                elif pat:
+                    reason = i18n.tr("log.classify_hit", pat)
+                else:
+                    reason = i18n.tr("log.classify_default")
                 t = Task(source=u, url=final, filename=fname, category=cat,
                          dest=str(Path(models_dir) / cat / fname))
                 self._tasks.append(t)

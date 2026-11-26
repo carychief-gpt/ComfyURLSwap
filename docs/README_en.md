@@ -1,6 +1,6 @@
 # ComfyURLSwap
 
-**v1.2.0** · Windows · Pure Python (Tkinter), **zero third-party dependencies** · **8 UI languages**
+**v1.3.0** · Windows · Pure Python (Tkinter), **zero third-party dependencies** · **8 UI languages**
 
 [简体中文](../README.md) | **English**
 
@@ -18,22 +18,29 @@ download links, and it will:
 3. **Download with multi-threading and resume support** — byte-level resume
    (`.part` + `Range`), survives pause / network loss / closing the app; task list is
    persisted and restored on next launch; failed tasks retry with backoff.
-4. **File every model into the right folder** under `<project>\ComfyUI\models\`,
-   detected from the URL / file name (double-click a task to override):
+4. **File every model into the right folder**: an **official ComfyUI model table**
+   (`urlswap/model_table.json` — 153 official blueprint file names → folders, freely
+   editable) is matched first by exact file name; anything unmatched falls back to
+   URL / file-name keyword detection. Files land under `<project>\ComfyUI\models\`,
+   in the right sub-folder (double-click a task to override):
 
    | Model type | Destination folder |
    | --- | --- |
-   | Checkpoint (SD1.5 / SDXL / Flux …) | `models/checkpoints/` |
-   | Diffusion / UNet base (quantized `fp8/int8/nvfp4` …) | `models/diffusion_models/` |
+   | Checkpoint (SD1.5 / SDXL / Stable Audio …) | `models/checkpoints/` |
+   | Diffusion base (Flux / Qwen-Image / Wan / SD3.5 / Z-Image, incl. `fp8/int8/nvfp4` quantized) | `models/diffusion_models/` |
+   | Text encoder (CLIP / T5 / UMT5 / Qwen-VL) | `models/text_encoders/` (legacy `models/clip/`) |
    | LoRA | `models/loras/` |
    | VAE | `models/vae/` |
+   | Preview VAE (TAESD) | `models/vae_approx/` |
    | ControlNet | `models/controlnet/` |
    | Embedding / Textual Inversion | `models/embeddings/` |
-   | CLIP / text encoder | `models/clip/` |
    | CLIP Vision | `models/clip_vision/` |
-   | UNet / diffusion model | `models/unet/` |
    | Upscaler (ESRGAN …) | `models/upscale_models/` |
-   | IP-Adapter | `models/ipadapter/` |
+   | Latent upscaler | `models/latent_upscale_models/` |
+   | Model patch / adapter (T2I-Adapter …) | `models/model_patches/` |
+   | Style model (IP-Adapter …) | `models/style_models/` or `models/ipadapter/` |
+   | GLIGEN / Hypernetwork / PhotoMaker / Classifier | `models/gligen/` etc. |
+   | Detection / geometry / optical flow / frame interpolation / background removal / audio | `models/detection/`, `models/geometry_estimation/` etc. |
 5. **Talk to you in your language** — the whole UI *and* log messages are localized in
    English · 简体中文 · 日本語 · 한국어 · Español · Français · Deutsch · Русский,
    auto-detected from your system locale on first run and switchable live via the
@@ -43,7 +50,7 @@ download links, and it will:
 
 * **Windows EXE (recommended, no Python needed):**
   [GitHub Releases](https://github.com/carychief-gpt/ComfyURLSwap/releases/latest) →
-  download `ComfyURLSwap-v1.2.0.exe` and double-click it. `settings.json` / `tasks.json`
+  download `ComfyURLSwap-v1.3.0.exe` and double-click it. `settings.json` / `tasks.json`
   (preferences, resume data) are created next to the EXE on first run.
 * **Run from source:** Python 3.8+ (with tkinter), then `python main.py`.
 
@@ -72,13 +79,26 @@ Remove Completed · Open Model Folder.
 ```bash
 pip install pyinstaller
 pyinstaller --onefile --windowed --name ComfyURLSwap ^
-  --icon tools\app.ico --add-data "tools\app.ico;." main.py
+  --icon tools\app.ico --add-data "tools\app.ico;." ^
+  --add-data "urlswap\model_table.json;urlswap" main.py
 # → dist\ComfyURLSwap.exe
 ```
 
 `tools\build_exe.bat` does the same on Windows; `tools\make_icon.py` regenerates the icon.
 
 ## Changelog
+
+### v1.3.0
+* **New official ComfyUI model table** (`urlswap/model_table.json`): scraped from the
+  official repo's 116 workflow blueprints — 153 model file names → destination folders.
+  Classification now matches this table first (exact file name) and only falls back to
+  keyword rules afterwards; the table is plain JSON and freely editable
+* Category folders fully aligned with official ComfyUI: added `text_encoders` (legacy
+  `clip` folder still works), `vae_approx`, `latent_upscale_models`, `model_patches`,
+  `style_models`, `detection`, `geometry_estimation`, `optical_flow`,
+  `frame_interpolation`, `background_removal`, `audio_encoders` — all translated into
+  the 8 UI languages
+* Logs now state the routing source: official table hit / keyword hit / default
 
 ### v1.2.0
 * **i18n:** entire UI + log/status messages localized — English, 简体中文, 日本語,
@@ -106,7 +126,8 @@ urlswap/
   i18n.py                # translations — 8 languages
   downloader.py          # multithread / resume / task persistence
   project.py             # ComfyUI project auto-detection
-  classify.py            # model routing rules
+  classify.py            # official model table + keyword routing rules
+  model_table.json       # official ComfyUI blueprint table (filename -> folder, editable)
   settings.py            # settings IO (EXE-aware)
 docs/
   README_en.md           # English documentation

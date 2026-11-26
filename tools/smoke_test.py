@@ -34,8 +34,8 @@ CASES = [
     ("https://civitai.com/api/download/models/12345?filename=Ghibli_v6.safetensors&type=LoRA", "loras"),
     ("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors", "vae"),
     ("https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/resolve/main/control_v11f1p_sd15_depth.pth", "controlnet"),
-    ("https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors", "clip"),
-    ("https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors", "clip"),
+    ("https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors", "text_encoders"),
+    ("https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors", "text_encoders"),
     ("https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter_sdxl_vit-h.safetensors", "ipadapter"),
     ("https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/image_encoder/pytorch_model.bin", "ipadapter"),
     ("https://huggingface.co/2nt/Esgrgan_aqualibria/resolve/main/2xAni44_v30.pth", "upscale_models"),
@@ -48,12 +48,33 @@ CASES = [
     ("https://huggingface.co/stabilityai/sdxl-turbo/resolve/main/sd_xl_turbo_1.0.safetensors", "checkpoints"),
     ("https://hf-mirror.com/Comfy-Org/flux1-dev/resolve/main/flux1-dev-fp8.safetensors", "diffusion_models"),
     ("https://hf-mirror.com/Comfy-Org/Hyper-SD/resolve/main/Hyper-SD15-8steps-FP8.safetensors", "diffusion_models"),
-    ("https://hf-mirror.com/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors", "clip"),
+    ("https://hf-mirror.com/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors", "text_encoders"),
+    # —— v1.3.0 官方模型表用例（blueprints 精确文件名，优先于关键词规则）——
+    ("https://hf-mirror.com/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors", "diffusion_models"),
+    ("https://hf-mirror.com/Comfy-Org/HunyuanImage_3/resolve/main/sam3.1_multiplex_fp16.safetensors", "checkpoints"),
+    ("https://hf-mirror.com/Comfy-Org/stable-audio-3/resolve/main/stable_audio_3_medium.safetensors", "checkpoints"),
+    ("https://hf-mirror.com/x/y/resolve/main/birefnet.safetensors", "background_removal"),
+    ("https://hf-mirror.com/x/y/resolve/main/ltx-2.3-spatial-upscaler-x2-1.1.safetensors", "latent_upscale_models"),
+    ("https://hf-mirror.com/x/y/resolve/main/T5XXL_FP16.SAFETENSORS", "text_encoders"),  # 大小写不敏感
 ]
 print("== 分类测试 ==")
 for url, want in CASES:
     got, why = classify_url(url)
-    check(got == want, "classify %s -> %s (%s)" % (url.rsplit("/", 1)[-1][:48], got, why))
+    tag = "官方表" if why is None else (why or "默认")
+    check(got == want, "classify %s -> %s (%s)" % (url.rsplit("/", 1)[-1][:48], got, tag))
+
+# 官方表 / i18n 完整性
+from urlswap import i18n as _i18n                       # noqa: E402
+from urlswap import classify as _cls                    # noqa: E402
+_tbl = _cls._official_table()
+check(len(_tbl) >= 150, "官方模型表加载: %d 条" % len(_tbl))
+_bad = [c for c in _cls.CATEGORIES if ("cat." + c) not in _i18n._EN]
+check(not _bad, "en 缺分类翻译: %s" % _bad)
+_lack = [(code, c) for code, _n in _i18n.LANGUAGES if code != "en"
+         for c in _cls.CATEGORIES if ("cat." + c) not in _i18n._STR[code]]
+check(not _lack, "其他语言缺分类翻译: %s" % _lack[:5])
+check(all("log.classify_table" in d for d in [_i18n._EN] + list(_i18n._STR.values())),
+      "log.classify_table 全语言齐备")
 
 print("\n== 域名替换 / 文件名 ==")
 check(to_mirror("https://huggingface.co/a/b/resolve/main/x.safetensors")
@@ -243,7 +264,7 @@ try:
     mgr6.add_tasks([big_url], auto_mirror=True)
     t6 = mgr6.snapshot()[-1]
     check("/resolve/" in t6["url"], "blob 地址已自动转 resolve 直链（用户案例）")
-    check(t6["category"] == "clip", "MiniMax-H3 text_encoders 归类为 clip")
+    check(t6["category"] == "text_encoders", "MiniMax-H3 文本编码器命中官方表归 text_encoders")
     mgr6.start(1)
     deadline = time.time() + 30
     ok6 = False

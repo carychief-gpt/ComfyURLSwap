@@ -1,18 +1,64 @@
 # -*- coding: utf-8 -*-
 """根据 URL / 文件名 猜测模型类型，决定放入 ComfyUI/models 下的哪个子目录。
 
-规则按优先级从上到下匹配（先匹配到的胜出），全部未命中时默认 checkpoints。
+匹配优先级：
+  1. model_table.json —— ComfyUI 官方工作流模板的「模型文件名 -> 目录」对照表（精确匹配）
+  2. 关键词规则（自上而下，先匹配者胜出），全部未命中时默认 checkpoints
 界面上每个任务仍可手动双击修改分类，以手动结果为准。
 """
+import json
 import re
-from urllib.parse import unquote
+from functools import lru_cache
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 # 分类目录 key（语言无关）—— 显示名由 i18n 提供: tr("cat." + key)；下拉顺序即此顺序
+# 与 ComfyUI 官方 models 子目录对齐（含旧版别名目录 clip / unet 与常用扩展 ipadapter）
 CATEGORIES = [
-    "checkpoints", "diffusion_models", "loras", "vae", "controlnet",
-    "clip", "clip_vision", "unet", "upscale_models", "ipadapter",
-    "embeddings", "other",
+    "checkpoints", "diffusion_models", "text_encoders", "loras", "vae",
+    "vae_approx", "clip_vision", "controlnet", "embeddings",
+    "upscale_models", "latent_upscale_models", "model_patches",
+    "style_models", "ipadapter", "clip", "unet", "gligen", "hypernetworks",
+    "photomaker", "classifiers", "detection", "geometry_estimation",
+    "optical_flow", "frame_interpolation", "background_removal",
+    "audio_encoders", "other",
 ]
+
+_TABLE_FILE = Path(__file__).with_name("model_table.json")
+
+
+@lru_cache(maxsize=1)
+def _official_table():
+    """官方模型对照表（小写文件名 -> 目录），缺失时优雅降级（空表则只走关键词规则）。
+
+    内置表（随程序分发）先加载；APP_DIR（源码=仓库根 / EXE=EXE 同目录）下如放同名
+    model_table.json，则外置条目优先，方便用户不改源码/不重打包直接覆盖扩充。
+    """
+    from .settings import APP_DIR
+    table = {}
+    for path in (_TABLE_FILE, APP_DIR / "model_table.json"):
+        try:
+            raw = json.loads(path.read_text("utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(raw, dict):
+            table.update({k.lower(): v for k, v in raw.items()
+                          if not k.startswith("_") and isinstance(v, str)})
+    return table
+
+
+def _fname_from_url(url):
+    """取 URL 对应的目标文件名（含 civitai ?filename= 参数），小写。"""
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return ""
+    if parts.query:
+        for kv in parts.query.split("&"):
+            k, _, v = kv.partition("=")
+            if k.lower() == "filename" and v:
+                return unquote(v).strip().lower()
+    return unquote(parts.path.rstrip("/").rsplit("/", 1)[-1]).lower()
 
 # (目录名, [匹配模式, ...])，按顺序尝试
 _RULES = [
@@ -71,7 +117,15 @@ _RULES = [
 
 
 def classify_url(url):
-    """返回 (category, 命中的模式串)；未命中时模式串为 ""。"""
+    """返回 (category, why)。
+
+    why is None  -> 命中官方模型对照表（精确文件名）；
+    why == ""    -> 未命中任何特征，默认 checkpoints；
+    其他         -> 命中的关键词模式串。
+    """
+    hit = _official_table().get(_fname_from_url(url))
+    if hit:
+        return hit, None
     text = url.lower()
     try:
         text = unquote(text)
